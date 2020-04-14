@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Register</title>
+    <link rel="icon" href="data:;base64,=">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link href='http://fonts.googleapis.com/css?family=Roboto+Slab:400,700' rel='stylesheet' type='text/css'>
+    <link href='http://fonts.googleapis.com/css?family=Rosario:400,700' rel='stylesheet' type='text/css'>
+    <link href="../static/css/style.css" rel="stylesheet" type="text/css" media="all"/>
+    <script src="../static/js/jquery.min.js"></script>
+    <script src="../static/js/hover_pack.js"></script>
+    <script type="text/javascript">
+        function change(img) {
+            img.src = img.src + "?" + new Date().getTime();
+        }
+
+        function register() {
+            var formData = new FormData($("form")[0]);
+            var data = {
+                username: formData.get("name"),
+                password: formData.get("password"),
+                qrPwd: formData.get("qrPwd"),
+                tel: formData.get("tel"),
+                checkCode: formData.get("checkCode")
+            };
+
+            var required = ["username", "password", "qrPwd", "checkCode"];
+            for (var val of required) {
+                if (data[val] == null || data[val] === "") {
+                    alert("Please input " + val);
+                    return;
+                }
+            }
+            if (data.password.length < 8 || data.password.length > 16) {
+                alert("A valid password should have a length between 8-16!");
+                return;
+            }
+            var pattern1 = /[a-z]+/;
+            var pattern2 = /[0-9]+/;
+            var pattern3 = /[A-Z]+/;
+            if ((pattern1.test(data.password) && pattern2.test(data.password) && pattern3.test(data.password)) === false) {
+                alert("The password should contains number, uppercase letter and lowercase letter!");
+                return;
+            }
+            if (data.password !== data.qrPwd) {
+                alert("The confirmed password should be identical with the password!");
+                return;
+            }
+
+            $.ajax({
+                url: "user-register",
+                type: "POST",
+                data: data,
+                timeout: 30000,
+                dataType: "json",
+                scriptCharset: "utf-8",
+                success: function (data) {
+                    console.log(data);
+                    change($(".check-code")[0]);
+                    if (data != null && data.msg != null) {
+                        if (data.status == "success") {
+                            $("form")[0].reset();
+                        }
+                        alert(data.msg);
+                    }
+                },
+                error: function (XMLHttpRequest, textStatus, errorThrown) {
+                    //alert(errorThrown);
+                }
+            });
+        }
+    </script>
+    <style>
+        #main {
+            width: 1000px;
+            margin: 0 auto;
+            background-color: #F0F0F0;
+            border-bottom: 1px dotted #000;
+            border-top: 1px dotted #000;
+        }
+
+        .h_main, .content {
+            padding: 1px 0;
+        }
+
+        .h_main {
+            height: 540px;
+        }
+
+        #register {
+            width: 600px;
+            margin: 10px auto;
+        }
+
+        #register tr td {
+            padding: 5px;
+        }
+
+        .code {
+            width: 45%;
+        }
+
+        #register table {
+            width: 100%;
+        }
+
+        #register table td {
+            text-align: left;
+        }
+
+        .text-red {
+            color: red;
+        }
+    </style>
+</head>
+
+<body>
+<!-- start header -->
+<div class="header">
+    <div class="wrap1">
+        <div class="soc_icons">
+            <ul class="tt-wrapper">
+                <li><a class="tt-gplus" href="#"><span>twitter</span></a></li>
+                <li><a class="tt-dribbble" href="#"><span>facebook</span></a></li>
+                <li><a class="tt-facebook" href="#"><span>youtube</span></a></li>
+                <li><a class="tt-linkedin" href="#"><span>skype</span></a></li>
+            </ul>
+        </div>
+        <div class="clear"></div>
+        <div class="header_left"><!-- start header_left -->
+            <div class="logo">
+                <h1><a href="index">Cinema</a></h1>
+            </div>
+            <div class="h_nav">
+                <ul>
+                    <li><a href="login">sign in</a></li>
+                    <li class="nav"><a href="register">sign up</a></li>
+                </ul>
+            </div>
+        </div><!-- end header_left -->
+        <div class="h_main">
+            <div class="content" id="register">
+                <h5>Register</h5>
+                <form>
+                    <table>
+                        <tr>
+                            <td>Username <span class="text-red">*</span></td>
+                            <td>
+                                <input type="text" class="input" name="name"/>
+                            </td>
+                        </tr>
+                        <!--<tr>
+                            <td>Group invite code:</td>
+                            <td>
+                                <input required="required" type="text" class="input" name="invite_code" maxlength="18"/><font
+                                    color="red"> *</font>
+                            </td>
+                        </tr>-->
+                        <tr>
+                            <td>Password <span class="text-red">*</span></td>
+                            <td>
+                                <input type="password" class="input" name="password">
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Confirm Password <span class="text-red">*</span></td>
+                            <td>
+                                <input type="password" class="input" name="qrPwd">
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Telephone</td>
+                            <td><input type="text" class="input" name="tel"></td>
+                        </tr>
+                        <tr>
+                            <td>Check Code <span class="text-red">*</span></td>
+                            <td>
+                                <input type="text" class="input code" maxlength="4" name="checkCode">
+                                <img src="check-code" class="check-code" onclick="change(this)"/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="2" style="text-align: center">
+                                <input type="button" class="btn" value="Submit" onclick="register()"/>
+                                <input type="reset" class="btn" value="Reset"/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="text-align: center" colspan="2">
+                                <a href="login">Already have an account? Login here!</a>
+                            </td>
+                        </tr>
+                    </table>
+
+                </form>
+            </div>
+        </div>
+        <div class="clear"></div>
+    </div>
+</div>
+<!-- start footer -->
+<div class="footer_bg">
+    <div class="footer">
+        <div class="copy">
+            <p class="link">Copyright &copy; 2020. All rights reserved.</p>
+        </div>
+        <div class="clear"></div>
+    </div>
+</div>
+</body>
+</html>

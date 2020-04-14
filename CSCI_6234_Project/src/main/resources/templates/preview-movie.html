@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Preview</title>
+    <link rel="icon" href="data:;base64,=">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link href='http://fonts.googleapis.com/css?family=Roboto+Slab:400,700' rel='stylesheet' type='text/css'>
+    <link href='http://fonts.googleapis.com/css?family=Rosario:400,700' rel='stylesheet' type='text/css'>
+    <link href="../static/css/style.css" rel="stylesheet" type="text/css" media="all"/>
+    <script src="../static/js/jquery.min.js"></script>
+    <script src="../static/js/hover_pack.js"></script>
+
+    <script th:inline="javascript">
+        var allpages = 1;
+        var page = 1;
+        var apiId = "";
+        var params = location.href.split("?")[1].split("&");
+        for (var parameter of params) {
+            if (parameter.startsWith("api_id=")) {
+                apiId = parameter.replace("api_id=", "");
+                break;
+            }
+        }
+
+        $(document).ready(function () {
+            //TODO
+            getGroup();
+            getDetail(apiId);
+            getTrails(apiId);
+            // getReview(apiId, 1);
+        });
+
+        function getGroup() {
+            $.ajax({
+                url: "get-moderate-group",
+                type: "GET",
+                timeout: 30000,
+                dataType: "json",
+                scriptCharset: "utf-8",
+                success: function (data) {
+                    var html = '';
+                    for (i in data.data) {
+                        html += '<option value="' + data.data[i].id + '">' + data.data[i].name + '</option>';
+                    }
+                    $('#sel').html(html);
+                },
+                error: function (XMLHttpRequest, textStatus, errorThrown) {
+                    alert(errorThrown);
+                }
+            });
+        }
+
+        function getDetail(movie_id) {
+            $.ajax({
+                url: "https://api.themoviedb.org/3/movie/" + movie_id + "?api_key=8a35d3b541da81f56395425838e3350c&language=en-US",
+                type: "GET",
+                data: {
+                    //change
+                },
+                timeout: 30000,
+                dataType: "jsonp",
+                crossDomain: true,
+                scriptCharset: "utf-8",
+                success: function (data) {
+                    console.log(data);
+                    var language = data.spoken_languages[0].name;
+                    for (i = 1; i < data.spoken_languages.length; i++) {
+                        language += ' / ' + data.spoken_languages[i].name;
+                    }
+                    var genres = data.genres[0].name;
+                    for (i = 1; i < data.genres.length; i++) {
+                        genres += ' / ' + data.genres[i].name;
+                    }
+                    var html = '';
+                    html += ''
+                        //TODO
+                        + '<div style="text-align:center;float:left;"><img height=240px src="https://image.tmdb.org/t/p/w500' + data.poster_path + '"/></div>'
+                        //+'<div style="text-align:center;float:left;"><img width=240px src="image/poster.jpg"/></div>'
+                        + '<div style="margin-left:40px;width:500px;float:left;">'
+                        + '<div class="att">Language: ' + language + '</div>'
+                        + '<div class="att">Genres: ' + genres + '</div>'
+                        + '<div class="att">Release date: ' + data.release_date + '</div>'
+                        + '<div class="att">tagline: ' + data.tagline + '</div>'
+                        + '<div class="att">popularity: ' + data.popularity + '</div>'
+                        + '<div class="att">Vote count: ' + data.vote_count + '</div>'
+                        + '<div class="att">Vote average: ' + data.vote_average + '</div>'
+                        + '<div class="att"></div>'
+                        + '</div>'
+                        + '<div class="att" style="clear:both;text-align:justify;">Overview: ' + data.overview + '</div>';
+                    $("#movie_detail").html(html);
+                    $("#title").html(data.title);
+                },
+                error: function (XMLHttpRequest, textStatus, errorThrown) {
+                    alert(errorThrown);
+                }
+            });
+        }
+
+        function getTrails(movie_id) {
+            $.ajax({
+                url: "https://api.themoviedb.org/3/movie/" + movie_id + "/videos?api_key=8a35d3b541da81f56395425838e3350c&language=en-US",
+                type: "GET",
+                data: {
+                    //change
+                },
+                timeout: 30000,
+                dataType: "jsonp",
+                crossDomain: true,
+                scriptCharset: "utf-8",
+                success: function (data) {
+                    console.log(data);
+                    var html = '';
+                    for (i in data.results) {
+                        html += '<div class="t_item">'
+                            + '<iframe width="400" height="280" src="https://www.youtube.com/embed/' + data.results[i].key + '" frameborder="1" allow="accelerometer; /* autoplay; */ encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>'
+                            + '<div class="trailer-title"><a target="new" href="https://www.youtube.com/watch?v=' + data.results[i].key + '">' + data.results[i].name + '</a></div>'
+                            + '</div>';
+                    }
+                    $("#trail").html(html);
+                },
+                error: function (XMLHttpRequest, textStatus, errorThrown) {
+                    alert(errorThrown);
+                }
+            });
+        }
+
+        function getReview(movie_id, page) {
+            $.ajax({
+                url: "https://api.themoviedb.org/3/movie/" + movie_id + "/reviews?api_key=8a35d3b541da81f56395425838e3350c&language=en-US&page=" + page,
+                type: "GET",
+                data: {
+                    //change
+                },
+                timeout: 30000,
+                dataType: "jsonp",
+                crossDomain: true,
+                scriptCharset: "utf-8",
+                success: function (data) {
+                    console.log(data);
+                    var html = '';
+                    for (i in data.results) {
+                        html += '<div><span class="name">' + data.results[i].author + '</span><br><span class="cont">' + data.results[i].content + '</span></div>';
+                    }
+                    $("#review").html(html);
+                },
+                error: function (XMLHttpRequest, textStatus, errorThrown) {
+                    alert(errorThrown);
+                }
+            });
+        }
+
+        function addMovie() {
+            $.ajax({
+                url: "add-movie",
+                type: "POST",
+                data: {
+                    groupId: $("#sel option:selected").val(),
+                    apiId: apiId,
+                    movieName: $("#title").text()
+                },
+                timeout: 30000,
+                dataType: "json",
+                scriptCharset: "utf-8",
+                success: function (data) {
+                    console.log(data);
+                    if (data != null && data.msg != null) {
+                        alert(data.msg);
+                    }
+                },
+                error: function (XMLHttpRequest, textStatus, errorThrown) {
+                    alert(errorThrown);
+                }
+            });
+        }
+    </script>
+    <style>
+        .h_main, .content {
+            padding: 10px 0;
+        }
+
+        .h_main {
+            height: 300px;
+        }
+
+        #movie_detail {
+            line-height: 20px;
+            margin: 0 auto;
+            text-align: left;
+            width: 80%;
+        }
+
+        .att {
+            margin: 16px;
+        }
+
+        h5 {
+            text-align: center;
+            line-height: 50px;
+        }
+
+        .a_item {
+            display: inline-block;
+            margin: 10px;
+        }
+
+        .name {
+            display: block;
+            font-weight: bold;
+            margin-top: 10px;
+            text-align: left;
+        }
+
+        .cont {
+            display: inline-block;
+            text-align: justify;
+            text-indent: 2em;
+        }
+
+        #a_content {
+            width: 80%;
+            height: 100px;
+            line-height: 24px;
+            resize: none;
+            font-size: 18px;
+            text-indent: 2em;
+        }
+
+        .t_item {
+            width: 50%;
+            text-align: center;
+            float: left;
+            margin: 20px 0;
+        }
+
+        .select {
+            width: 60%;
+            margin-top: 20px;
+        }
+
+        .rsele {
+            width: 80%;
+        }
+
+        .trailer-title {
+            margin: auto;
+            width: 300px;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+    </style>
+</head>
+
+<body>
+<!-- start header -->
+<div class="header">
+    <div class="wrap1">
+        <div class="soc_icons">
+            <ul class="tt-wrapper">
+                <li><a class="tt-gplus" href="#"><span>twitter</span></a></li>
+                <li><a class="tt-dribbble" href="#"><span>facebook</span></a></li>
+                <li><a class="tt-facebook" href="#"><span>youtube</span></a></li>
+                <li><a class="tt-linkedin" href="#"><span>skype</span></a></li>
+            </ul>
+        </div>
+        <div class="clear"></div>
+        <div class="header_left"><!-- start header_left -->
+            <div class="logo">
+                <h1><a href="index">Cinema</a></h1>
+            </div>
+            <div class="h_nav">
+                <ul>
+                    <li><a href="index">home</a></li>
+                    <li><a href="manage-group">group</a></li>
+                    <li><a href="watching-event">watch</a></li>
+                    <li><a href="voting-event">vote</a></li>
+                    <li><a href="search-movie">search</a></li>
+                    <li><a href="logout">sign out</a></li>
+                </ul>
+            </div>
+        </div><!-- end header_left -->
+        <div class="h_main">
+            <div class="content">
+                <h5 id="title"></h5>
+                <select id="sel" class="select"></select>
+                <input type="button" class="btn" onclick="addMovie()" value="add to group movie list"/>
+            </div>
+        </div>
+        <div class="clear"></div>
+    </div>
+</div>
+<!-- start main -->
+<div class="main">
+    <div class="wrap">
+        <div class="content"><!-- start content -->
+            <div id="movie_detail">
+
+            </div>
+            <h5>Trail</h5>
+            <div id="trail">
+
+            </div>
+            <div style="clear:left;"></div>
+
+            <!--<h5>Review</h5>
+            <div id="review">
+
+            </div>-->
+
+        </div><!-- end content -->
+        <script th:inline="javascript">
+            var msg = /*[[${msg}]]*/ null;
+            if (msg != null) {
+                alert(msg);
+            }
+        </script>
+    </div>
+</div>
+<!-- start footer -->
+<div class="footer_bg">
+    <div class="footer">
+        <div class="copy">
+            <p class="link">Copyright &copy; 2020. All rights reserved.</p>
+        </div>
+        <div class="clear"></div>
+    </div>
+</div>
+</body>
+</html>

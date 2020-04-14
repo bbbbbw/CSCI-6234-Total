@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Login</title>
+    <link rel="icon" href="data:;base64,=">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link href='http://fonts.googleapis.com/css?family=Roboto+Slab:400,700' rel='stylesheet' type='text/css'>
+    <link href='http://fonts.googleapis.com/css?family=Rosario:400,700' rel='stylesheet' type='text/css'>
+    <link href="../static/css/style.css" rel="stylesheet" type="text/css" media="all"/>
+    <script src="../static/js/jquery.min.js"></script>
+    <script src="../static/js/hover_pack.js"></script>
+    <script type="text/javascript">
+        function change(img) {
+            img.src = img.src + "?" + new Date().getTime();
+        }
+
+        function login() {
+            var formData = new FormData($("form")[0]);
+            var data = {
+                username: formData.get("username"),
+                password: formData.get("password"),
+                checkCode: formData.get("checkCode")
+            };
+
+            var required = ["username", "password", "checkCode"];
+            for (var val of required) {
+                if (data[val] == null || data[val] === "") {
+                    alert("Please input " + val);
+                    return;
+                }
+            }
+
+            $.ajax({
+                url: "user-login",
+                type: "POST",
+                data: data,
+                timeout: 30000,
+                dataType: "json",
+                scriptCharset: "utf-8",
+                success: function (data) {
+                    change($(".check-code")[0]);
+                    console.log(data);
+                    if (data.status == "success") {
+                        window.location = "/index";
+                    } else {
+                        alert(data.msg);
+                    }
+                },
+                error: function (XMLHttpRequest, textStatus, errorThrown) {
+                    //alert(errorThrown);
+                }
+            });
+        }
+    </script>
+    <style>
+        .h_main, .content {
+            padding: 1px 0;
+        }
+
+        .h_main {
+            height: 450px;
+        }
+
+        #login {
+            width: 600px;
+            margin: 10px auto;
+        }
+
+        #login tr td {
+            padding: 5px;
+        }
+
+        .code {
+            width: 45%;
+        }
+
+        #login table {
+            width: 100%;
+        }
+
+        #login table td {
+            text-align: left;
+        }
+
+        .text-red {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+<!-- start header -->
+<div class="header">
+    <div class="wrap1">
+        <div class="soc_icons">
+            <ul class="tt-wrapper">
+                <li><a class="tt-gplus" href="#"><span>twitter</span></a></li>
+                <li><a class="tt-dribbble" href="#"><span>facebook</span></a></li>
+                <li><a class="tt-facebook" href="#"><span>youtube</span></a></li>
+                <li><a class="tt-linkedin" href="#"><span>skype</span></a></li>
+            </ul>
+        </div>
+        <div class="clear"></div>
+        <div class="header_left"><!-- start header_left -->
+            <div class="logo">
+                <h1><a href="index">Cinema</a></h1>
+            </div>
+            <div class="h_nav">
+                <ul>
+                    <li class="nav"><a href="login">sign in</a></li>
+                    <li><a href="register">sign up</a></li>
+                </ul>
+            </div>
+        </div><!-- end header_left -->
+        <div class="h_main">
+            <div class="content" id="login">
+                <h5>Login</h5>
+                <form>
+                    <table style="margin: 20px;">
+                        <tr>
+                            <td>Username <span class="text-red">*</span></td>
+                            <td>
+                                <input type="text" class="input" name="username">
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Password <span class="text-red">*</span></td>
+                            <td>
+                                <input type="password" class="input" name="password">
+                            </td>
+                        </tr>
+                        <!--<tr>
+                            <td>Type:</td>
+                            <td>
+                                <input type="radio" value="moderator" checked name="type"/>moderator
+                                <input type="radio" value="member" name="type"/>member
+                            </td>
+                        </tr>-->
+                        <tr>
+                            <td>Check Code <span class="text-red">*</span></td>
+                            <td>
+                                <input maxlength="4" type="text" class="input code" name="checkCode">
+                                <img src="check-code" class="check-code" onclick="change(this)"/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="text-align: center" colspan="2">
+                                <input type="button" class="btn" value="login" onclick="login()"/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="text-align: center" colspan="2">
+                                <a href="register">You don't have an account? Register now!</a>
+                            </td>
+                        </tr>
+                    </table>
+                </form>
+            </div>
+        </div>
+        <div class="clear"></div>
+    </div>
+</div>
+<!-- start footer -->
+<div class="footer_bg">
+    <div class="footer">
+        <div class="copy">
+            <p class="link">Copyright &copy; 2020. All rights reserved.</p>
+        </div>
+        <div class="clear"></div>
+    </div>
+</div>
+</body>
+</html>

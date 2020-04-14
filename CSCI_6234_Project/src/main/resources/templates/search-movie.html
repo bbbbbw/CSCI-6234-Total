@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Watch Event</title>
+    <link rel="icon" href="data:;base64,=">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link href='http://fonts.googleapis.com/css?family=Roboto+Slab:400,700' rel='stylesheet' type='text/css'>
+    <link href='http://fonts.googleapis.com/css?family=Rosario:400,700' rel='stylesheet' type='text/css'>
+    <link href="../static/css/style.css" rel="stylesheet" type="text/css" media="all"/>
+    <script src="../static/js/jquery.min.js"></script>
+    <script src="../static/js/hover_pack.js"></script>
+    <style>
+        #main {
+            width: 1000px;
+            margin: 0 auto;
+            background-color: #F0F0F0;
+            border-bottom: 1px dotted #000;
+            border-top: 1px dotted #000;
+        }
+
+        .movie_item {
+            float: left;
+            margin: 10px;
+            padding: 2px;
+            text-align: center;
+        }
+
+        .h_main, .content {
+            padding: 0;
+        }
+
+        .h_main {
+            height: 200px;
+        }
+
+        .h_main .content {
+            margin-top: 100px;
+        }
+
+        #addWatch, #watchinfor {
+            width: 45%;
+            float: left;
+            height: 95%;
+            border: 1px dotted black;
+            padding: 10px;
+            text-align: left;
+        }
+
+        .input {
+            width: 60%;
+        }
+
+        .time {
+            width: 140px;
+        }
+
+        .lb {
+            padding: 5px;
+        }
+
+        #spage a {
+            display: inline-block;
+            margin: 20px;
+        }
+
+        #tab {
+            width: 800px;
+            margin: 0 auto;
+        }
+    </style>
+    <script>
+        var allpages = 1;
+        var page = 1;
+        var keyword = '';
+
+        $(document).ready(function () {
+            search(1);
+        });
+
+        function search(page) {
+            var url;
+            keyword = $("#s_name").val();
+            if (keyword == '') {
+                url = "https://api.themoviedb.org/3/movie/popular?api_key=8a35d3b541da81f56395425838e3350c&language=en-US&page=" + page;
+            } else {
+                url = "https://api.themoviedb.org/3/search/movie?api_key=8a35d3b541da81f56395425838e3350c&language=en-US&query=" + keyword + "&page=" + page + "&include_adult=false";
+            }
+            $.ajax({
+                url: url,
+                type: "GET",
+                data: {
+                    //change
+                },
+                timeout: 30000,
+                dataType: "jsonp",
+                crossDomain: true,
+                scriptCharset: "utf-8",
+                success: function (data) {
+                    console.log(data);
+                    if (data.results.length == 0) {
+                        alert('No movies with the wrong keyword!');
+                        return;
+                    }
+                    allpages = data.total_pages;
+                    var html = '<h5>Search result</h5><table id="tab"><tr><th></th><th>title</th><th>language</th><th>release date</th><th>popularity</th></tr>';
+                    for (i in data.results) {
+                        html += '<tr>'
+                            + '<td>' + (parseInt(i) + 1) + '</td>'
+                            + '<td><a href="preview-movie?api_id=' + data.results[i].id + '">' + data.results[i].title + '</a></td>'
+                            + '<td>' + data.results[i].original_language + '</td>'
+                            + '<td>' + data.results[i].release_date + '</td>'
+                            + '<td>' + data.results[i].popularity + '</td>';
+                        html += '</tr>';
+                    }
+                    html += '</table>';
+                    $("#search_list").html(html);
+                    var left = 2;
+                    var right = 2;
+                    var currpage = parseInt(page);
+                    var htm = '<a href="javascript:search(1)">First</a>';
+
+                    if (currpage - 2 < 0) {
+                        left -= 2;
+                        right += 2;
+                    } else if (currpage - 2 == 0) {
+                        left -= 1;
+                        right += 1;
+                    }
+                    if (currpage + 2 > allpages + 1) {
+                        left += 2;
+                        right -= 2;
+                    } else if (currpage + 1 == allpages) {
+                        left += 1;
+                        right -= 1;
+                    }
+                    for (var i = left; i > 0; i--) {
+                        if (currpage - i == 0) {
+                            break;
+                        }
+                        htm += '<a href="javascript:search(' + (currpage - i) + ')">' + (currpage - i) + '</a>';
+                    }
+                    htm += '<a style="text-decoration:underline;" href="javascript:search(' + currpage + ')">' + currpage + '</a>';
+                    for (var i = 1; i <= right; i++) {
+                        if (currpage + i > allpages) {
+                            break;
+                        }
+                        htm += '<a href="javascript:search(' + (currpage + i) + ')">' + (currpage + i) + '</a>';
+                    }
+                    htm += '<a href="javascript:search(' + allpages + ')">Last</a>';
+                    //console.log(htm);
+                    $("#spage").html(htm);
+                },
+                error: function (XMLHttpRequest, textStatus, errorThrown) {
+                    //alert(errorThrown);
+                }
+            });	 /**/
+        }
+    </script>
+</head>
+<body>
+<!-- start header -->
+<div class="header">
+    <div class="wrap1">
+        <div class="soc_icons">
+            <ul class="tt-wrapper">
+                <li><a class="tt-gplus" href="#"><span>twitter</span></a></li>
+                <li><a class="tt-dribbble" href="#"><span>facebook</span></a></li>
+                <li><a class="tt-facebook" href="#"><span>youtube</span></a></li>
+                <li><a class="tt-linkedin" href="#"><span>skype</span></a></li>
+            </ul>
+        </div>
+        <div class="clear"></div>
+        <div class="header_left"><!-- start header_left -->
+            <div class="logo">
+                <h1><a href="index">Cinema</a></h1>
+            </div>
+            <div class="h_nav">
+                <ul>
+                    <li><a href="index">home</a></li>
+                    <li><a href="manage-group">manage group</a></li>
+                    <li><a href="watching-event">watching event</a></li>
+                    <li><a href="voting-event">voting event</a></li>
+                    <li class="nav"><a href="search-movie">search movie</a></li>
+                    <li><a href="logout">sign out</a></li>
+                </ul>
+            </div>
+        </div><!-- end header_left -->
+        <div class="h_main">
+            <div class="content">
+                <input type="text" class="input create" placeholder="Input the movie name..." id="s_name"/>
+                <input type="button" class="btn" value="search" onclick="search(1)"/><br>
+            </div>
+        </div>
+        <div class="clear"></div>
+    </div>
+</div>
+<!-- start main -->
+<div class="main">
+    <div class="wrap">
+        <div class="content"><!-- start content -->
+            <div id="search_list">
+
+            </div>
+            <div style="clear:left;"></div>
+            <div id="spage"></div>
+        </div><!-- end content -->
+    </div>
+</div>
+<!-- start footer -->
+<div class="footer_bg">
+    <div class="footer">
+        <div class="copy">
+            <p class="link">Copyright &copy; 2020. All rights reserved.</p>
+        </div>
+        <div class="clear"></div>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Group</title>
+    <link rel="icon" href="data:;base64,=">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link href='http://fonts.googleapis.com/css?family=Roboto+Slab:400,700' rel='stylesheet' type='text/css'>
+    <link href='http://fonts.googleapis.com/css?family=Rosario:400,700' rel='stylesheet' type='text/css'>
+    <link href="../static/css/style.css" rel="stylesheet" type="text/css" media="all"/>
+    <script src="../static/js/jquery.min.js"></script>
+    <script src="../static/js/hover_pack.js"></script>
+    <script>
+        var allpages = 20;
+        var page = 1;
+        var sallpage = 1;
+        var keyword = '';
+        var groupInfo;
+        $(document).ready(function () {
+            getModerateGroups();
+        });
+
+        function getModerateGroups() {
+            $.ajax({
+                url: "get-moderate-group",
+                type: "GET",
+                timeout: 30000,
+                dataType: "json",
+                scriptCharset: "utf-8",
+                success: function (data) {
+                    var html = '';
+                    groupInfo = data.data;
+                    for (i in data.data) {
+                        html += '<option value="' + data.data[i].id + '">' + data.data[i].name + '</option>';
+                    }
+                    $('#sel').html(html);
+                    if (data.data.length == 0) {
+                        return;
+                    }
+                    // getMovies(page);
+                    getGroupInfo(0);
+                },
+                error: function (XMLHttpRequest, textStatus, errorThrown) {
+                    //alert(errorThrown);
+                }
+            });
+        }
+
+        function getGroupInfo(index) {
+            var currentGroup = groupInfo[index];
+            var html = '<tr><td>Group name:</td><td>' + currentGroup.name + '</td><tr>'
+                + '<tr><td>Group No.:</td><td>' + currentGroup.id + '</td><tr>'
+                + '<tr><td>Invite code:</td><td><span id="inv">' + currentGroup.inviteCode + '</span></td></tr>';
+            $('#group_info').html(html);
+
+            getMovie(currentGroup.id);
+        }
+
+        function getMovie(groupId) {
+            $.ajax({
+                url: "get-group-movie",
+                type: "GET",
+                data: {
+                    groupId: groupId
+                },
+                timeout: 30000,
+                dataType: "json",
+                scriptCharset: "utf-8",
+                success: function (data) {
+                    console.log(data);
+                    $("#group_movie").html('');
+                    for (i in data.data) {
+                        getDetail(groupId, data.data[i].id, data.data[i].apiId);
+                    }
+                    $("#group_movie").append('<div style="clear:left;"></div>');
+                },
+                error: function (XMLHttpRequest, textStatus, errorThrown) {
+                    //alert(errorThrown);
+                }
+            });
+        }
+
+        function getDetail(groupId, localId, apiId) {
+            $.ajax({
+                url: "https://api.themoviedb.org/3/movie/" + apiId + "?api_key=8a35d3b541da81f56395425838e3350c&language=en-US",
+                type: "GET",
+                data: {
+                    //change
+                },
+                timeout: 30000,
+                dataType: "jsonp",
+                crossDomain: true,
+                scriptCharset: "utf-8",
+                success: function (data) {
+                    //console.log(data);
+                    var language = data.spoken_languages[0].name;
+                    for (i = 1; i < data.spoken_languages.length; i++) {
+                        language += ' / ' + data.spoken_languages[i].name;
+                    }
+                    var genres = data.genres[0].name;
+                    for (i = 1; i < data.genres.length; i++) {
+                        genres += ' / ' + data.genres[i].name;
+                    }
+                    var html = '';
+                    html += '<div class="item">'
+                        + '<div style="text-align:center;float:left;"><a href="detail?movie_id=' + localId + '&group_id=' + groupId + '"><img width=100px src="https://image.tmdb.org/t/p/w500' + data.poster_path + '"/></a></div>'
+                        //+'<div style="text-align:center;float:left;"><img width=80px src="image/poster.jpg"/></div>'
+                        + '<div style="margin:2px;width:300px;float:left;">'
+                        + '<div class="att">' + data.title + '</div>'
+                        + '<div class="att">' + language + '</div>'
+                        + '<div class="att">' + genres + '</div>'
+                        + '<div class="att">' + data.release_date + '</div>'
+                        + '<div class="att">popularity: ' + data.popularity + '</div>'
+                        + '<div class="att"><button class="btn" onclick="removeMovie(' + localId + ',' + groupId + ')">remove</button></div>'
+                        + '</div>'
+                        + '</div>';
+                    $("#group_movie").append(html);
+                },
+                error: function (XMLHttpRequest, textStatus, errorThrown) {
+                    //alert(errorThrown);
+                }
+            });
+        }
+
+        function removeMovie(localId, groupId) {
+            $.ajax({
+                url: "remove-movie",
+                type: "POST",
+                data: {
+                    movieId: localId,
+                    groupId: groupId
+                },
+                timeout: 30000,
+                dataType: "json",
+                scriptCharset: "utf-8",
+                success: function (data) {
+                    console.log(data);
+                    if (data != null && data.msg != null) {
+                        alert(data.msg);
+                    }
+                    if (data.status == 'success') {
+                        getMovie(groupId);
+                    }
+                },
+                error: function (XMLHttpRequest, textStatus, errorThrown) {
+                    //alert(errorThrown);
+                }
+            });
+        }
+
+        /* function getMovies(page){
+            for(i = 0; i < 20; i++){
+                var html='';
+                html+='<div class="movie_item">'
+                        +'<a href="detail.jsp?movie_id=419704">'
+                            +'<img height=180px src="image/poster.jpg"/>'
+                            +'<div style="margin:2px;width:160px;">'
+                                +'<div>Ad Astra</div>'
+                                +'<div>2019-09-17</div>'
+                            +'</div>'
+                        +'</a>'
+                    +'</div>';
+                $("#movie_list").append(html);
+            }
+        } */
+        //TODO
+        function getMovies(page) {
+            $.ajax({
+                //url:"ReqServ",
+                //dataType:"json",
+                data: {
+                    //change
+                    //type:"popular"
+                },
+                url: "https://api.themoviedb.org/3/movie/popular?api_key=8a35d3b541da81f56395425838e3350c&language=en-US&page=" + page,
+                type: "GET",
+                timeout: 30000,
+                dataType: "jsonp",
+                crossDomain: true,
+                scriptCharset: "utf-8",
+                success: function (data) {
+                    allpages = parseInt(data.total_pages);
+                    console.log(data);
+                    $("#movie_list").html('');
+                    for (i in data.results) {
+                        var html = '';
+                        html += '<div class="movie_item">'
+                            + '<a href="preview-movie?api_id=' + data.results[i].id + '">'
+                            + '<img height=180px src="https://image.tmdb.org/t/p/w500' + data.results[i].poster_path + '"/>'
+                            //+'<img height=180px src="../image/poster.jpg"/>'
+                            + '<div style="margin:2px;width:160px;">'
+                            + '<div style="height:40px;overflow:hidden;">' + data.results[i].title + '</div>'
+                            + '<div>' + data.results[i].release_date + '</div>'
+                            + '</div>'
+                            + '</a>'
+                            + '</div>';
+                        $("#movie_list").append(html);
+                    }
+                    //$("#movie_list").html(html);
+                    //page
+                    var left = 2;
+                    var right = 2;
+                    var currpage = parseInt(page);
+                    var htm = '<a href="javascript:getMovies(1)">First</a>';
+
+                    if (currpage - 2 < 0) {
+                        left -= 2;
+                        right += 2;
+                    } else if (currpage - 2 == 0) {
+                        left -= 1;
+                        right += 1;
+                    }
+                    if (currpage + 2 > allpages + 1) {
+                        left += 2;
+                        right -= 2;
+                    } else if (currpage + 1 == allpages) {
+                        left += 1;
+                        right -= 1;
+                    }
+                    for (var i = left; i > 0; i--) {
+                        htm += '<a href="javascript:getMovies(' + (currpage - i) + ')">' + (currpage - i) + '</a>';
+                    }
+                    htm += '<a style="text-decoration:underline;" href="javascript:getMovies(' + currpage + ')">' + currpage + '</a>';
+                    for (var i = 1; i <= right; i++) {
+                        htm += '<a href="javascript:getMovies(' + (currpage + i) + ')">' + (currpage + i) + '</a>';
+                    }
+                    htm += '<a href="javascript:getMovies(' + allpages + ')">Last</a>';
+                    //console.log(htm);
+                    $("#spage").html(htm);
+                },
+                error: function (XMLHttpRequest, textStatus, errorThrown) {
+                    //alert(errorThrown);
+                }
+            });
+        } /**/
+    </script>
+    <style>
+        .btn {
+            padding: 5px 10px;
+        }
+
+        .movie_item {
+            float: left;
+            margin: 10px;
+            padding: 2px;
+            text-align: center;
+        }
+
+        #group_movie {
+            width: 980px;
+            margin: 0 auto;
+        }
+
+        .item {
+            float: left;
+            width: 420px;
+            height: 160px;
+            margin: 20px;
+            overflow: hidden;
+        }
+
+        #movie_list {
+            min-height: 200px;
+        }
+
+        .h_main {
+            padding: 0;
+        }
+
+        #spage a {
+            display: inline-block;
+            margin: 20px;
+        }
+
+        #group_info {
+            margin: auto;
+        }
+    </style>
+</head>
+
+<body>
+<!-- start header -->
+<div class="header">
+    <div class="wrap1">
+        <div class="soc_icons">
+            <ul class="tt-wrapper">
+                <li><a class="tt-gplus" href="#"><span>twitter</span></a></li>
+                <li><a class="tt-dribbble" href="#"><span>facebook</span></a></li>
+                <li><a class="tt-facebook" href="#"><span>youtube</span></a></li>
+                <li><a class="tt-linkedin" href="#"><span>skype</span></a></li>
+            </ul>
+        </div>
+        <div class="clear"></div>
+        <div class="header_left"><!-- start header_left -->
+            <div class="logo">
+                <h1><a href="index">Cinema</a></h1>
+            </div>
+            <div class="h_nav">
+                <ul>
+                    <li><a href="index">home</a></li>
+                    <li class="nav"><a href="manage-group">manage group</a></li>
+                    <li><a href="watching-event">watching event</a></li>
+                    <li><a href="voting-event">voting event</a></li>
+                    <li><a href="search-movie">search movie</a></li>
+                    <li><a href="logout">sign out</a></li>
+                </ul>
+            </div>
+        </div><!-- end header_left -->
+        <div class="h_main">
+            <div class="content">
+                <select id="sel" class="select" onchange="getGroupInfo(this.selectedIndex)"></select>
+                <h6>group information</h6>
+                <table id="group_info"></table>
+            </div>
+        </div>
+        <div class="clear"></div>
+    </div>
+</div>
+<!-- start main -->
+<div class="main">
+    <div class="wrap">
+        <div class="content"><!-- start content -->
+            <h5>group movie list</h5>
+            <div id="group_movie"></div>
+            <div style="clear:left;"></div>
+            <!--<h5>movie list(from the api)</h5>
+            <div id="movie_list"></div>
+            <div style="clear:left;"></div>
+            <div id="spage"></div>-->
+        </div><!-- end content -->
+    </div>
+</div>
+<!-- start footer -->
+<div class="footer_bg">
+    <div class="footer">
+        <div class="copy">
+            <p class="link">Copyright &copy; 2020. All rights reserved.</p>
+        </div>
+        <div class="clear"></div>
+    </div>
+</div>
+</body>
+</html>

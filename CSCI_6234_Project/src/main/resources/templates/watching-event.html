@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Watch Event</title>
+    <link rel="icon" href="data:;base64,=">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link href='http://fonts.googleapis.com/css?family=Roboto+Slab:400,700' rel='stylesheet' type='text/css'>
+    <link href='http://fonts.googleapis.com/css?family=Rosario:400,700' rel='stylesheet' type='text/css'>
+    <link href="../static/css/style.css" rel="stylesheet" type="text/css" media="all"/>
+    <script src="../static/js/jquery.min.js"></script>
+    <script src="../static/js/hover_pack.js"></script>
+    <style>
+        #main {
+            width: 1000px;
+            margin: 0 auto;
+            background-color: #F0F0F0;
+            border-bottom: 1px dotted #000;
+            border-top: 1px dotted #000;
+        }
+
+        .movie_item {
+            float: left;
+            margin: 10px;
+            padding: 2px;
+            text-align: center;
+        }
+
+        .h_main, .content {
+            padding: 0;
+        }
+
+        .h_main {
+            height: 360px;
+        }
+
+        #addWatch, #watchinfor {
+            width: 45%;
+            float: left;
+            height: 340px;
+            border: 1px dotted black;
+            padding: 10px;
+            text-align: left;
+        }
+
+        .input {
+            width: 300px;
+        }
+
+        .time {
+            width: 140px;
+        }
+
+        .lb {
+            padding: 5px;
+        }
+
+        #spage a, #sspage a {
+            display: inline-block;
+            margin: 20px;
+        }
+
+        .create {
+            width: 60%;
+        }
+
+        #sear {
+            margin-top: 3rem;
+            display: none;
+        }
+
+        #tab {
+            width: 800px;
+            margin: 0 auto;
+        }
+
+        #votemovie_list {
+            width: 100%;
+        }
+
+        #infor {
+            text-align: center;
+            line-height: 35px;
+        }
+
+        #movie_list table, #search_list table {
+            width: 100%;
+        }
+    </style>
+    <script>
+        var list = [];//the movie list for voting in the current group
+        var groupMovie = [];//the movie list in the current group
+        var allpages = 20;
+        var page = 1;
+        var sallpage = 1;
+        var keyword = '';
+        $(document).ready(function () {
+            getGroups();
+            //getMovies(1);
+            setDate();
+        });
+
+        /* function getWatchDate(movie_id, code) {
+            var date_now = new Date();
+            var year = date_now.getFullYear();
+            var month = date_now.getMonth() + 1 < 10 ? "0" + (date_now.getMonth() + 1) : (date_now.getMonth() + 1);
+            var date = date_now.getDate() < 10 ? "0" + date_now.getDate() : date_now.getDate();
+            var hour = date_now.getHours();
+            var minute = date_now.getMinutes();
+            var Now = year + "/" + month + "/" + date + " " + hour + ":" + minute;
+            var Watch = '';
+
+            $.ajax({
+                url: "ReqServ",
+                type: "POST",
+                data: {
+                    type: "getWatchInfor",
+                    watch_id: $("#seleWatch option:selected").val(),
+                },
+                timeout: 30000,
+                dataType: "json",
+                scriptCharset: "utf-8",
+                success: function (data) {
+                    console.log(data);
+                    if (data.data == 'fail') {
+                        return false;
+                    }
+                    Watch = data.data.watch_date + ' ' + data.data.finish_time;
+                    if (Date.parse(Now) < Date.parse(Watch)) {
+                        addToList(movie_id, code);
+                        return true;
+                    } else {
+                        alert('You can\'t add the movie any more!');
+                        return false;
+                    }
+                },
+                error: function (XMLHttpRequest, textStatus, errorThrown) {
+                    //alert(errorThrown);
+                }
+            });
+        } */
+
+        function setDate() {
+            var date_now = new Date();
+            var year = date_now.getFullYear();
+            var month = date_now.getMonth() + 1 < 10 ? "0" + (date_now.getMonth() + 1) : (date_now.getMonth() + 1);
+            var date = date_now.getDate() < 10 ? "0" + date_now.getDate() : date_now.getDate();
+            $("#wdate").attr("min", year + "-" + month + "-" + date);
+            $("#wdate").val(year + "-" + month + "-" + date);
+        }
+
+        function search(page) {
+            if (page == 1) {
+                keyword = $("#s_name").val();
+                if (keyword == '') {
+                    alert('Please input the keyword of the movie!');
+                    return;
+                }
+            }
+            $.ajax({
+                url: "https://api.themoviedb.org/3/search/movie?api_key=8a35d3b541da81f56395425838e3350c&language=en-US&query=" + keyword + "&page=" + page + "&include_adult=false",
+                type: "GET",
+                data: {
+                    //change
+                },
+                timeout: 30000,
+                dataType: "jsonp",
+                crossDomain: true,
+                scriptCharset: "utf-8",
+                success: function (data) {
+                    console.log(data);
+                    if (data.results.length == 0) {
+                        alert('No movies with the wrong keyword!');
+                        return;
+                    }
+                    sallpage = parseInt(data.total_pages);
+                    var html = '<h5>Search result</h5><table id="tab"><tr><th></th><th>title</th><th>language</th><th>release date</th><th>popularity</th><th>add</th></tr>';
+                    for (i in data.results) {
+                        html += '<tr>'
+                            + '<td>' + (parseInt(i) + 1) + '</td>'
+                            + '<td><a href="preview-movie?api_id=' + data.results[i].id + '">' + data.results[i].title + '</a></td>'
+                            + '<td>' + data.results[i].original_language + '</td>'
+                            + '<td>' + data.results[i].release_date + '</td>'
+                            + '<td>' + data.results[i].popularity + '</td>';
+                        //html+='<td><input type="button" class="btn lb" value="add" onclick="addToList('+data.results[i].id+')"/></td>';
+                        //if(list.indexOf((data.results[i].id).toString())!=-1||groupMovie.indexOf((data.results[i].id).toString())!=-1){
+                        if (list.indexOf((data.results[i].id).toString()) != -1) {
+                            html += '<td><input type="checkbox" checked disabled/></td>';
+                        } else {
+                            html += '<td><input type="button" class="btn lb" value="add" onclick="addToList(\'' + data.results[i].title + '\', ' + data.results[i].id + ',2)"/></td>';
+                        }
+
+                        html += '</tr>';
+                    }
+                    html += '</table>';
+                    $("#search_list").html(html);
+                    var left = 2;
+                    var right = 2;
+                    var currpage = parseInt(page);
+                    var htm = '<a href="javascript:search(1)">First</a>';
+
+                    if (currpage - 2 < 0) {
+                        left -= 2;
+                        right += 2;
+                    } else if (currpage - 2 == 0) {
+                        left -= 1;
+                        right += 1;
+                    }
+                    if (currpage + 2 > sallpage + 1) {
+                        left += 2;
+                        right -= 2;
+                    } else if (currpage + 1 == sallpage) {
+                        left += 1;
+                        right -= 1;
+                    }
+                    for (var i = left; i > 0; i--) {
+                        htm += '<a href="javascript:search(' + (currpage - i) + ')">' + (currpage - i) + '</a>';
+                    }
+                    htm += '<a style="text-decoration:underline;" href="javascript:search(' + currpage + ')">' + currpage + '</a>';
+                    for (var i = 1; i <= right; i++) {
+                        htm += '<a href="javascript:search(' + (currpage + i) + ')">' + (currpage + i) + '</a>';
+                    }
+                    htm += '<a href="javascript:search(' + sallpage + ')">Last</a>';
+                    //console.log(htm);
+                    $("#sspage").html(htm);
+                    getVoteMovieList();
+                },
+                error: function (XMLHttpRequest, textStatus, errorThrown) {
+                    //alert(errorThrown);
+                }
+            });	 /**/
+        }
+
+        function getGroups() {
+            $.ajax({
+                url: "get-moderate-group",
+                type: "GET",
+                data: {
+
+                },
+                timeout: 30000,
+                dataType: "json",
+                scriptCharset: "utf-8",
+                success: function (data) {
+                    var html = '<option value="0">select a group</option>';
+                    for (i in data.data) {
+                        html += '<option value="' + data.data[i].id + '">' + data.data[i].name + '</option>';
+                    }
+                    $('#sel').html(html);
+                    $('#seleGroup').html(html);
+                },
+                error: function (XMLHttpRequest, textStatus, errorThrown) {
+                    //alert(errorThrown);
+                }
+            });
+        }
+
+        function addWatch() {
+            if ($("#sel option:selected").val() == null || $("#sel option:selected").val() === "" || $("#sel option:selected").val() === "0") {
+                alert("Please select a group!");
+                return
+            }
+            if ($("#wdate").val() == null || $("#wdate").val() === "") {
+                alert("Please select a date!");
+                return;
+            }
+            if ($("#stime").val() == null || $("#stime").val() === "") {
+                alert("Please select a start time!");
+                return;
+            }
+            if ($("#ftime").val() == null || $("#ftime").val() === "") {
+                alert("Please select an end time!");
+                return;
+            }
+            $.ajax({
+                url: "create-watching-event",
+                type: "POST",
+                data: {
+                    groupId: $("#sel option:selected").val(),
+                    watchDate: $("#wdate").val(),
+                    startTime: $("#stime").val(),
+                    endTime: $("#ftime").val(),
+                    msg: $("#msg").val()
+                },
+                timeout: 30000,
+                dataType: "json",
+                scriptCharset: "utf-8",
+                success: function (data) {
+                    console.log(data);
+                    if (data.status == 'success') {
+                        createVotingEvent();
+                    }
+                },
+                error: function (XMLHttpRequest, textStatus, errorThrown) {
+                    //alert(errorThrown);
+                }
+            });
+        }
+
+        function createVotingEvent() {
+            $.ajax({
+                url: "create-voting-event",
+                type: "POST",
+                data: {
+                    groupId: $("#sel option:selected").val()
+                },
+                timeout: 30000,
+                dataType: "json",
+                scriptCharset: "utf-8",
+                success: function (data) {
+                    console.log(data);
+                    if (data.status == 'success') {
+                        location.reload();
+                    }
+                },
+                error: function (XMLHttpRequest, textStatus, errorThrown) {
+                    //alert(errorThrown);
+                }
+            });
+        }
+
+        function getMovies(page) {
+            $.ajax({
+                data: {
+                    //change
+                },
+                url: "https://api.themoviedb.org/3/movie/popular?api_key=8a35d3b541da81f56395425838e3350c&language=en-US&page=" + page,
+                type: "GET",
+                timeout: 30000,
+                dataType: "jsonp",
+                crossDomain: true,
+                scriptCharset: "utf-8",
+                success: function (data) {
+                    allpages = data.total_pages;
+                    $("#movie_list").html('');
+                    var html = '<h5>movie list(from the api)</h5><table><tr><th></th><th>title</th><th>language</th><th>release date</th><th>popularity</th><th>add to voting list</th></tr>';
+                    //$("#movie_list").html('<h5>movie list(from the api)</h5><table><tr><th></th><th>title</th><th>language</th><th>release date</th><th>popularity</th><th>add to voting list</th></tr>');
+                    for (i in data.results) {
+                        html += '<tr>'
+                            + '<td>' + (parseInt(i) + 1) + '</td>'
+                            + '<td><a href="preview-movie?api_id=' + data.results[i].id + '">' + data.results[i].title + '</a></td>'
+                            + '<td>' + data.results[i].original_language + '</td>'
+                            + '<td>' + data.results[i].release_date + '</td>'
+                            + '<td>' + data.results[i].popularity + '</td>';
+                        //if(list.indexOf((data.results[i].id).toString())!=-1||groupMovie.indexOf((data.results[i].id).toString())!=-1){
+                        if (list.indexOf((data.results[i].id).toString()) != -1) {
+                            html += '<td><input type="checkbox" checked disabled/></td>';
+                        } else {
+                            html += '<td><input type="button" class="btn lb" value="add" onclick="addToList(\'' + data.results[i].title + '\', ' + data.results[i].id + ', 1)"/></td>';
+                        }
+                        html += '</tr>';
+                        //$("#movie_list").append(html);
+                    }
+                    html += '</table>';
+                    //$("#movie_list").append('</table>');
+                    $("#movie_list").html(html);
+                    var left = 2;
+                    var right = 2;
+                    var currpage = parseInt(page);
+                    var htm = '<a href="javascript:getMovies(1)">First</a>';
+
+                    if (currpage - 2 < 0) {
+                        left -= 2;
+                        right += 2;
+                    } else if (currpage - 2 == 0) {
+                        left -= 1;
+                        right += 1;
+                    }
+                    if (currpage + 2 > allpages + 1) {
+                        left += 2;
+                        right -= 2;
+                    } else if (currpage + 1 == allpages) {
+                        left += 1;
+                        right -= 1;
+                    }
+                    for (var i = left; i > 0; i--) {
+                        htm += '<a href="javascript:getMovies(' + (currpage - i) + ')">' + (currpage - i) + '</a>';
+                    }
+                    htm += '<a style="text-decoration:underline;" href="javascript:getMovies(' + currpage + ')">' + currpage + '</a>';
+                    for (var i = 1; i <= right; i++) {
+                        htm += '<a href="javascript:getMovies(' + (currpage + i) + ')">' + (currpage + i) + '</a>';
+                    }
+                    htm += '<a href="javascript:getMovies(' + allpages + ')">Last</a>';
+                    //console.log(htm);
+                    $("#spage").html(htm);
+                },
+                error: function (XMLHttpRequest, textStatus, errorThrown) {
+                    //alert(errorThrown);
+                }
+            });
+        }
+
+        var watchingEventList;
+        function getWatchList() {
+            if ($("#seleGroup option:selected").val() == '0') {
+                $("#seleWatch").html('<option>select a watching event</option>');
+                $("#votemovie_list").empty();
+                $("#movie_list").empty();
+                $("#sear").empty();
+                $("#spage").empty();
+                $("#infor").empty()
+                $("#vshow").hide();
+                return;
+            }
+            $.ajax({
+                url: "get-watching-event",
+                type: "GET",
+                data: {
+                    groupId: $("#seleGroup option:selected").val()
+                },
+                timeout: 30000,
+                dataType: "json",
+                scriptCharset: "utf-8",
+                success: function (data) {
+                    console.log(data);
+                    watchingEventList = data.data;
+                    var html = '';
+                    if (data.data.length == 0) {
+                        $("#seleWatch").html('<option>please create a watch event first!</option>');
+                        $("#votemovie_list").empty();
+                        $("#movie_list").empty();
+                        $("#sear").empty();
+                        $("#spage").empty();
+                        $("#infor").empty()
+                        $("#vshow").hide();
+                    } else {
+                        for (i in data.data) {
+                            html += '<option value="' + data.data[i].id + '">' + data.data[i].startTime + ' ~ ' + data.data[i].endTime + '</option>';
+                        }
+                        $('#seleWatch').html(html);
+                        getWatchInfor();
+                    }
+                },
+                error: function (XMLHttpRequest, textStatus, errorThrown) {
+                    //alert(errorThrown);
+                }
+            });
+        }
+
+        function getWatchInfor() {
+            var tempId = parseInt($("#seleWatch option:selected").val());
+            for (var data of watchingEventList) {
+                if (data.id === tempId) {
+                    var html = 'Start time: <span>' + data.startTime + '</span><br>'
+                        + 'End time: <span>' + data.endTime + '</span><br>'
+                        + 'Message: <span>' + data.message + '</span><br>';
+                    $('#infor').html(html);
+                    getVoteMovieList();
+                    break;
+                }
+            }
+        }
+
+        function getDetail(movie_id) {
+            $.ajax({
+                url: "https://api.themoviedb.org/3/movie/" + movie_id + "?api_key=8a35d3b541da81f56395425838e3350c&language=en-US",
+                type: "GET",
+                data: {
+                    //change
+                },
+                timeout: 30000,
+                dataType: "jsonp",
+                crossDomain: true,
+                scriptCharset: "utf-8",
+                success: function (data) {
+                    //console.log(data);
+                    var language = data.spoken_languages[0].name;
+                    for (i = 1; i < data.spoken_languages.length; i++) {
+                        language += ' / ' + data.spoken_languages[i].name;
+                    }
+                    var genres = data.genres[0].name;
+                    for (i = 1; i < data.genres.length; i++) {
+                        genres += ' / ' + data.genres[i].name;
+                    }
+                    var html = '<tr>';
+                    html += ''
+                        + '<td><img width=40px src="https://image.tmdb.org/t/p/w500' + data.poster_path + '"/></td>'
+                        //+'<td><img width=40px src="image/poster.jpg"/></td>'
+                        + '<td class="att"><a href="preview-movie?api_id=' + data.id + '">' + data.title + '</a></div>'
+                        + '<td class="att">' + language + '</div>'
+                        + '<td class="att">' + genres + '</div>'
+                        + '<td class="att">' + data.popularity + '</td>'
+                        + '</tr>';
+                    $("#votemovie_list").append(html);
+                },
+                error: function (XMLHttpRequest, textStatus, errorThrown) {
+                    //alert(errorThrown);
+                }
+            });
+        }
+
+        function getMovie() {
+            //get the group movie list
+            $.ajax({
+                url: "ReqServ",
+                type: "POST",
+                data: {
+                    type: "getMovie",
+                    group_id: $("#seleGroup option:selected").val()
+                },
+                timeout: 30000,
+                dataType: "json",
+                scriptCharset: "utf-8",
+                success: function (data) {
+                    console.log(data);
+                    for (i in data.data) {
+                        groupMovie.push(data.data[i].movie_id);
+                    }
+                },
+                error: function (XMLHttpRequest, textStatus, errorThrown) {
+                    alert(errorThrown);
+                }
+            });
+        }
+
+        function getVoteMovieList() {
+            //the movie in this watch
+            $.ajax({
+                url: "get-vote-movie-list",
+                type: "GET",
+                data: {
+                    groupId: $("#seleGroup option:selected").val(),
+                    watchingEventId: $("#seleWatch option:selected").val()
+                },
+                timeout: 30000,
+                dataType: "json",
+                scriptCharset: "utf-8",
+                success: function (data) {
+                    console.log(data);
+                    list = [];
+                    for (i in data.data) {
+                        list.push(data.data[i].movie_id);
+                    }
+                    $("#sear").css("display", "block");
+                    getMovies(1);
+                    $("#vshow").css("display", "block");
+                    $("#votemovie_list").html('<tr><th></th><th>title</th><th>language</th><th>genres</th><th>popularity</th></tr>');
+                    for (i in data.data) {
+                        getDetail(data.data[i].apiId);
+                    }
+                    // getMovie();
+                },
+                error: function (XMLHttpRequest, textStatus, errorThrown) {
+                    //alert(errorThrown);
+                }
+            });
+
+        }
+
+        function addToList(movie_name, movie_id, code) {
+            /*var date=getWatchDate();
+            console.log(typeof(date) == "undefined");
+            //while(typeof(date) == "undefined"){}
+            if(!date){
+                alert('You can\'t add the movie any more!');
+                return;
+            }*/
+            $.ajax({
+                url: "add-vote-movie",
+                type: "POST",
+                data: {
+                    movieName: movie_name,
+                    groupId: $("#seleGroup option:selected").val(),
+                    apiId: movie_id,
+                    watchingEventId: $("#seleWatch option:selected").val()
+                },
+                timeout: 30000,
+                dataType: "json",
+                scriptCharset: "utf-8",
+                success: function (data) {
+                    console.log(data);
+                    if (data != null && data.msg != null) {
+                        alert(data.msg);
+                    }
+                    if (data.status == 'success') {
+                        getVoteMovieList();
+                    }
+                    if (code == 2) {
+                        search(1);
+                    }
+                },
+                error: function (XMLHttpRequest, textStatus, errorThrown) {
+                    //alert(errorThrown);
+                }
+            });
+        }
+    </script>
+</head>
+<body>
+<!-- start header -->
+<div class="header">
+    <div class="wrap1">
+        <div class="soc_icons">
+            <ul class="tt-wrapper">
+                <li><a class="tt-gplus" href="#"><span>twitter</span></a></li>
+                <li><a class="tt-dribbble" href="#"><span>facebook</span></a></li>
+                <li><a class="tt-facebook" href="#"><span>youtube</span></a></li>
+                <li><a class="tt-linkedin" href="#"><span>skype</span></a></li>
+            </ul>
+        </div>
+        <div class="clear"></div>
+        <div class="header_left"><!-- start header_left -->
+            <div class="logo">
+                <h1><a href="index">Cinema</a></h1>
+            </div>
+            <div class="h_nav">
+                <ul>
+                    <li><a href="index">home</a></li>
+                    <li><a href="manage-group">manage group</a></li>
+                    <li class="nav"><a href="watching-event">watching event</a></li>
+                    <li><a href="voting-event">voting event</a></li>
+                    <li><a href="search-movie">search movie</a></li>
+                    <li><a href="logout">sign out</a></li>
+                </ul>
+            </div>
+        </div><!-- end header_left -->
+        <div class="h_main">
+            <div class="content">
+                <div id="watchinfor">
+                    <!--TODO descend order  -->
+                    <h5>Information</h5>
+                    <select id="seleGroup" class="select" onchange="getWatchList()">
+                        <option>select a group</option>
+                    </select>
+                    <select id="seleWatch" class="select" onchange="getWatchInfor()">
+                        <option>select a watch</option>
+                    </select><br>
+                    <div id="infor"></div>
+                </div>
+                <div id="addWatch">
+                    <h5>New watching event</h5>
+                    <select id="sel" class="select">
+                        <option value="0">select a group</option>
+                    </select><br>
+                    Watch date : <input type="date" class="input" id="wdate"/><br>
+                    Watch time : <input type="time" class="input time" value="08:00" id="stime"/> ~ <input type="time" class="input time" value="12:00" id="ftime"/><br>
+                    Additional message: <input type="text" class="input" id="msg"/><br>
+                    <div style="margin-top: 10px">
+                        <input type="button" class="btn" value="Create Event" onclick="addWatch()"/>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="clear"></div>
+    </div>
+</div>
+<!-- start main -->
+<div class="main">
+    <div class="wrap">
+        <div class="content"><!-- start content -->
+            <div id="selectMovie">
+                <h5 id="vshow" style="display:none;">Movies for voting</h5>
+                <table id="votemovie_list">
+
+                </table>
+                <div id="sear">
+                    <input type="text" class="input create" placeholder="Input the movie name..." id="s_name"/>
+                    <input type="button" class="btn" value="search" onclick="search(1)"/><br>
+                </div>
+                <div id="search_list"></div>
+                <div style="clear:left;"></div>
+                <div id="sspage"></div>
+
+                <div id="movie_list">
+
+                </div>
+                <div style="clear:left;"></div>
+                <div id="spage"></div>
+            </div>
+
+        </div><!-- end content -->
+    </div>
+</div>
+<!-- start footer -->
+<div class="footer_bg">
+    <div class="footer">
+        <div class="copy">
+            <p class="link">Copyright &copy; 2020. All rights reserved.</p>
+        </div>
+        <div class="clear"></div>
+    </div>
+</div>
+</body>
+</html>

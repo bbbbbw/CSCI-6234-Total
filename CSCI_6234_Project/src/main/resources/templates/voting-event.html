@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Voting Event</title>
+    <link rel="icon" href="data:;base64,=">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link href='http://fonts.googleapis.com/css?family=Roboto+Slab:400,700' rel='stylesheet' type='text/css'>
+    <link href='http://fonts.googleapis.com/css?family=Rosario:400,700' rel='stylesheet' type='text/css'>
+    <link href="../static/css/style.css" rel="stylesheet" type="text/css" media="all"/>
+    <script src="../static/js/jquery.min.js"></script>
+    <script src="../static/js/hover_pack.js"></script>
+    <script th:inline="javascript">
+        var watchingEventList;
+        $(document).ready(function () {
+            getGroups();
+            setDate();
+        });
+
+        function setDate() {
+            var date_now = new Date();
+            var year = date_now.getFullYear();
+            var month = date_now.getMonth() + 1 < 10 ? "0" + (date_now.getMonth() + 1) : (date_now.getMonth() + 1);
+            var date = date_now.getDate() < 10 ? "0" + date_now.getDate() : date_now.getDate();
+            $("#start_date").attr("min", year + "-" + month + "-" + date);
+            $("#start_date").val(year + "-" + month + "-" + date);
+            $("#end_date").attr("min", year + "-" + month + "-" + date);
+            $("#end_date").val(year + "-" + month + "-" + date);
+        }
+
+        function getGroups() {
+            $.ajax({
+                url: "get-group",
+                type: "GET",
+                data: {
+
+                },
+                timeout: 30000,
+                dataType: "json",
+                scriptCharset: "utf-8",
+                success: function (data) {
+                    var html = '<option value="0">select a group</option>';
+                    for (i in data.data) {
+                        html += '<option value="' + data.data[i].id + '" moderator="' + data.data[i].moderatorId + '">' + data.data[i].name + '</option>';
+                    }
+                    $('#sel').html(html);
+                    $('#seleGroup').html(html);
+                    if (data.data.length == 0) {
+                        return;
+                    }
+                },
+                error: function (XMLHttpRequest, textStatus, errorThrown) {
+                    //alert(errorThrown);
+                }
+            });
+        }
+
+
+        function getWatchList() {
+            if ($("#seleGroup option:selected").val() == "0") {
+                $("#votemovie_list").empty();
+                $("#seleWatch").html('<option value="0">select a watching event</option>');
+                $("#vshow").hide();
+                $("#infor").empty();
+                return;
+            }
+            $.ajax({
+                url: "get-watching-event",
+                type: "GET",
+                data: {
+                    groupId: $("#seleGroup option:selected").val()
+                },
+                timeout: 30000,
+                dataType: "json",
+                scriptCharset: "utf-8",
+                success: function (data) {
+                    console.log(data);
+                    watchingEventList = data.data;
+                    var html = '';
+                    if (data.data.length == 0) {
+                        $("#votemovie_list").empty();
+                        $("#vshow").hide();
+                        $("#seleWatch").html('<option value="0">please create a watch event first!</option>');
+                        $("#infor").html('');
+                        $("#addvote .btn").hide();
+                    } else {
+                        for (i in data.data) {
+                            html += '<option value="' + data.data[i].id + '">' + data.data[i].startTime + ' ~ ' + data.data[i].endTime + '</option>';
+                        }
+                        if ($("#seleGroup option:selected").attr("moderator") == [[${userId}]]) {
+                            $("#addvote .btn").show();
+                        } else {
+                            $("#addvote .btn").hide();
+                        }
+                        $('#seleWatch').html(html);
+                        getWatchInfor();
+                    }
+                },
+                error: function (XMLHttpRequest, textStatus, errorThrown) {
+                    //alert(errorThrown);
+                }
+            });
+        }
+
+        function getWatchInfor() {
+            /*$.ajax({
+                url: "ReqServ",
+                type: "POST",
+                data: {
+                    type: "getWatchInfor",
+                    watch_id: $("#seleWatch option:selected").val(),
+                },
+                timeout: 30000,
+                dataType: "json",
+                scriptCharset: "utf-8",
+                success: function (data) {
+                    console.log(data);
+                    if (data.data == 'fail') {
+                        return;
+                    }
+                    var html = '<table>';
+                    html += '<tr><td>Watch date: </td><td><span>' + data.data.watch_date + '</span></td>'
+                        + '<tr><td>Watch time: </td><td><span>' + data.data.start_time + '</span>~<span>' + data.data.finish_time + '</span></td>'
+                        + '<tr><td>Place: </td><td><span>' + data.data.place + '</span></td></table>';
+                    $('#infor').html(html);
+                    $('#watch_id').val(data.data.id);
+                    queryVote();
+                },
+                error: function (XMLHttpRequest, textStatus, errorThrown) {
+                    //alert(errorThrown);
+                }
+            });*/
+            var tempId = parseInt($("#seleWatch option:selected").val());
+            for (var data of watchingEventList) {
+                if (data.id === tempId) {
+                    var html = 'Start time: <span>' + data.startTime + '</span><br>'
+                        + 'End time: <span>' + data.endTime + '</span><br>'
+                        + 'Message: <span>' + data.message + '</span><br>';
+
+                    $('#infor').html(html);
+                    // queryVote();
+                    getVotingEvent();
+                    break;
+                }
+            }
+        }
+
+        function getVotingEvent() {
+            $.ajax({
+                url: "get-voting-event",
+                type: "GET",
+                data: {
+                    groupId: $("#seleGroup option:selected").val(),
+                    watchingEventId: $("#seleWatch option:selected").val()
+                },
+                timeout: 30000,
+                dataType: "json",
+                scriptCharset: "utf-8",
+                success: function (data) {
+                    console.log(data);
+                    var start = data.data.startAt;
+                    var end = data.data.endAt;
+                    console.log(start, end);
+
+                    var ymd = data.data.endAt.split(" ")[0];
+                    var hms = data.data.endAt.split(" ")[1];
+                    var currentTime = new Date();
+                    var endTime = new Date(ymd.substr(0, 4), parseInt(ymd.substr(5, 2)) - 1, ymd.substr(8, 2), hms.substr(0, 2), hms.substr(3, 2), 0, 0);
+                    console.log(endTime);
+                    console.log(currentTime);
+                    if (endTime - currentTime < 0) {
+                        $("#infor").append('Winner: <span id="winner">' + data.data.selectedMovieId + '</span><br>');
+                    } else {
+                        $("#infor").append('Winner: <span id="winner">TBD</span><br>');
+                    }
+
+                    $("#start_date").val(start.substr(0, 10));
+                    $("#start_time").val(start.substr(11, 5));
+                    $("#end_date").val(end.substr(0, 10));
+                    $("#end_time").val(end.substr(11, 5));
+
+                    getVoteMovieList();
+                },
+                error: function (XMLHttpRequest, textStatus, errorThrown) {
+                    alert(errorThrown);
+                }
+            });
+        }
+
+        function updateVotingEvent() {
+            var groupId = $("#seleGroup").val();
+            if (groupId == null || groupId == '0') {
+                alert("Please select a group!");
+                return;
+            }
+            var watchingEventId = $("#seleWatch").val();
+            if (watchingEventId == null || watchingEventId == '0') {
+                alert("Please select a watching event!");
+                return;
+            }
+            var startDate = $("#start_date").val();
+            if (startDate == null) {
+                alert("Please select a start date for voting!");
+                return;
+            }
+            var startTime = $("#start_time").val();
+            if (startDate == null) {
+                alert("Please select a start time for voting!");
+                return;
+            }
+            var endDate = $("#end_date").val();
+            if (endDate == null) {
+                alert("Please select an end date for voting!");
+                return;
+            }
+            var endTime = $("#end_time").val();
+            if (endTime == null) {
+                alert("Please select an end time for voting!");
+                return;
+            }
+            $.ajax({
+                url: "update-voting-event",
+                type: "POST",
+                data: {
+                    groupId: groupId,
+                    watchingEventId: watchingEventId,
+                    startDate: startDate,
+                    startTime: startTime,
+                    endDate: endDate,
+                    endTime: endTime
+                },
+                timeout: 30000,
+                dataType: "json",
+                scriptCharset: "utf-8",
+                success: function (data) {
+                    console.log(data);
+                    if (data != null && data.msg != null) {
+                        alert(data.msg);
+                    }
+                },
+                error: function (XMLHttpRequest, textStatus, errorThrown) {
+                    alert(errorThrown);
+                }
+            });
+        }
+
+        function getVoteMovieList() {
+            //the movie in this watch
+            $.ajax({
+                url: "get-vote-movie-list",
+                type: "GET",
+                data: {
+                    groupId: $("#seleGroup option:selected").val(),
+                    watchingEventId: $("#seleWatch option:selected").val()
+                },
+                timeout: 30000,
+                dataType: "json",
+                scriptCharset: "utf-8",
+                success: function (data) {
+                    console.log(data);
+                    $("#vshow").css("display", "block");
+                    $("#votemovie_list").html('<tr><th></th><th>title</th><th>language</th><th>genres</th><th>popularity</th><th>action</th></tr>');
+                    for (i in data.data) {
+                        if (data.data[i].id == $("#winner").text()) {
+                            $("#winner").html('<a href="preview-movie?api_id=' + data.data[i].apiId + '">' + data.data[i].name + '</a>');
+                        }
+                        getDetail(data.data[i].id, data.data[i].apiId);
+                    }
+                    //TODO query this member whether vote $("input[name='selector'][value='value']").prop("checked", "checked");
+                },
+                error: function (XMLHttpRequest, textStatus, errorThrown) {
+                    //alert(errorThrown);
+                }
+            });
+        }
+
+        function getDetail(localId, apiId) {
+            $.ajax({
+                url: "https://api.themoviedb.org/3/movie/" + apiId + "?api_key=8a35d3b541da81f56395425838e3350c&language=en-US",
+                type: "GET",
+                data: {
+                    //change
+                },
+                timeout: 30000,
+                dataType: "jsonp",
+                crossDomain: true,
+                scriptCharset: "utf-8",
+                success: function (data) {
+                    //console.log(data);
+                    var language = data.spoken_languages[0].name;
+                    for (i = 1; i < data.spoken_languages.length; i++) {
+                        language += ' / ' + data.spoken_languages[i].name;
+                    }
+                    var genres = data.genres[0].name;
+                    for (i = 1; i < data.genres.length; i++) {
+                        genres += ' / ' + data.genres[i].name;
+                    }
+                    var html = '<tr>';
+                    html += ''
+                        + '<td><img width=40px src="https://image.tmdb.org/t/p/w500' + data.poster_path + '"/></td>'
+                        //+'<td><img width=40px src="image/poster.jpg"/></td>'
+                        + '<td class="att"><a href="preview-movie?api_id=' + data.id + '">' + data.title + '</a></div>'
+                        + '<td class="att">' + language + '</div>'
+                        + '<td class="att">' + genres + '</div>'
+                        + '<td class="att">' + data.popularity + '</td>'
+                        + '<td class="att"><a href="javascript:voteForOrAgainst(1, ' + localId + ')">Vote for</a>&nbsp;|&nbsp;<a href="javascript:voteForOrAgainst(-1, ' + localId + ')">Vote against</a></td>'
+                        + '</tr>';
+                    $("#votemovie_list").append(html);
+                },
+                error: function (XMLHttpRequest, textStatus, errorThrown) {
+                    //alert(errorThrown);
+                }
+            });
+        }
+
+        function voteForOrAgainst(forOrAgainst, movieId) {
+            $.ajax({
+                url: "cast-vote",
+                type: "POST",
+                data: {
+                    groupId: $("#seleGroup").val(),
+                    watchingEventId: $("#seleWatch").val(),
+                    movieId: movieId,
+                    forOrAgainst: forOrAgainst
+                },
+                timeout: 30000,
+                dataType: "json",
+                scriptCharset: "utf-8",
+                success: function (data) {
+                    console.log(data);
+                    if (data != null && data.msg != null) {
+                        alert(data.msg);
+                    }
+                },
+                error: function (XMLHttpRequest, textStatus, errorThrown) {
+                    alert(errorThrown);
+                }
+            });
+        }
+
+        function queryVote() {
+            $.ajax({
+                url: "ReqServ",
+                type: "POST",
+                data: {
+                    type: "queryVote",
+                    watch_id: $("#seleWatch option:selected").val()
+                },
+                timeout: 30000,
+                dataType: "json",
+                scriptCharset: "utf-8",
+                success: function (data) {
+                    console.log(data);
+                    var html = '';
+                    if (data.data != 'fail') {
+                        html += '<table><tr><td>Vote ID:</td><td>' + data.data.id + '<input type="hidden" id="vote_id" value="' + data.data.id + '"/></td>'
+                            + '<tr><td style="text-align:right;">' + data.data.start_time + '</td><td>~<span id="end" style="text-align:right;">' + data.data.end_time + '</span></td>';
+                        if (data.data.like_movie_id == null) {
+                            html += '<tr><td>most like movie:</td><td></td><br>'
+                                + '<tr><td>most dislike movie:</td><td></td>';
+                        } else {
+                            html += '<tr><td>most like movie:</td><td><a href="detail.jsp?movie_id=' + data.data.like_movie_id + '">' + data.data.like_movie_id + '</a></td><br>'
+                                + '<tr><td>most dislike movie:</td><td><a href="detail.jsp?movie_id=' + data.data.dislike_movie_id + '">' + data.data.dislike_movie_id + '</a></td>';
+                        }
+                        html += '<tr colspan="2"><td><input type="button" value="Statistics" class="btn" onclick="statistics()"/></td></table>';
+                    } else {
+                        html += 'Watch id :<input type="text" class="input" disabled id="watch_id"/><br>'
+                            + 'Start time:<input type="date" class="input time" id="start_date"/> <input type="time" class="input time" value="08:00" id="start_time"/><br>'
+                            + 'End time :<input type="date" class="input time" id="end_date"/> <input type="time" class="input time" value="12:00" id="end_time"/><br>'
+                            + '<input type="button" class="btn" value="Start Vote" onclick="addVote()"/>';
+                    }
+                    $("#addvote").html(html);
+                    $("#watch_id").val($("#seleWatch option:selected").val());
+                    getVoteMovieList();
+                },
+                error: function (XMLHttpRequest, textStatus, errorThrown) {
+                    //alert(errorThrown);
+                }
+            });
+        }
+
+        function addVote() {
+            $.ajax({
+                url: "ReqServ",
+                type: "POST",
+                data: {
+                    type: "addVote",
+                    moderator_id: $("#uid").val(),
+                    group_id: $("#seleGroup option:selected").val(),
+                    watch_id: $("#seleWatch option:selected").val(),
+                    start_time: $("#start_date").val() + ' ' + $("#start_time").val(),
+                    end_time: $("#end_date").val() + ' ' + $("#end_time").val(),
+                },
+                timeout: 30000,
+                dataType: "json",
+                scriptCharset: "utf-8",
+                success: function (data) {
+                    console.log(data);
+                    if (data.status == 'success') {
+                        alert('The vote event create successfully!');
+                        queryVote();
+                    } else {
+                        alert('Failed! Please retry later!');
+                    }
+                },
+                error: function (XMLHttpRequest, textStatus, errorThrown) {
+                    //alert(errorThrown);
+                }
+            });
+        }
+
+        function statistics() {
+            var end_time = $("#end").text();
+            var date_now = new Date();
+            var year = date_now.getFullYear();
+            var month = date_now.getMonth() + 1 < 10 ? "0" + (date_now.getMonth() + 1) : (date_now.getMonth() + 1);
+            var date = date_now.getDate() < 10 ? "0" + date_now.getDate() : date_now.getDate();
+            var hour = date_now.getHours();
+            var minute = date_now.getMinutes();
+            console.log(Date.parse(end_time));
+            console.log(Date.parse(year + "/" + month + "/" + date + " " + hour + ":" + minute));
+            if (Date.parse(end_time) > Date.parse(year + "/" + month + "/" + date + " " + hour + ":" + minute)) {
+                alert('This vote has not meet the DDL! You can not statics.');
+                return;
+            }
+            $.ajax({
+                url: "ReqServ",
+                type: "POST",
+                data: {
+                    type: "statistics",
+                    group_id: $("#seleGroup option:selected").val(),
+                    vote_id: $("#vote_id").val()
+                },
+                timeout: 30000,
+                dataType: "json",
+                scriptCharset: "utf-8",
+                success: function (data) {
+                    console.log(data);
+                    getWatchInfor();
+                },
+                error: function (XMLHttpRequest, textStatus, errorThrown) {
+                    //alert(errorThrown);
+                }
+            });
+        }
+    </script>
+    <style>
+        .h_main, .content {
+            padding: 0;
+        }
+
+        #addvote, #watchinfor {
+            width: 45%;
+            float: left;
+            height: 340px;
+            border: 1px dotted black;
+            padding: 10px;
+            text-align: left;
+        }
+
+        .input {
+            width: 70%;
+        }
+
+        .time {
+            width: 140px;
+        }
+
+        #votemovie_list {
+            width: 100%;
+        }
+
+        #infor {
+            text-align: center;
+            line-height: 35px;
+        }
+    </style>
+
+</head>
+<body>
+<!-- start header -->
+<div class="header">
+    <div class="wrap1">
+        <div class="soc_icons">
+            <ul class="tt-wrapper">
+                <li><a class="tt-gplus" href="#"><span>twitter</span></a></li>
+                <li><a class="tt-dribbble" href="#"><span>facebook</span></a></li>
+                <li><a class="tt-facebook" href="#"><span>youtube</span></a></li>
+                <li><a class="tt-linkedin" href="#"><span>skype</span></a></li>
+            </ul>
+        </div>
+        <div class="clear"></div>
+        <div class="header_left"><!-- start header_left -->
+            <div class="logo">
+                <h1><a href="index">Cinema</a></h1>
+            </div>
+            <div class="h_nav">
+                <ul>
+                    <li><a href="index">home</a></li>
+                    <li><a href="manage-group">manage group</a></li>
+                    <li><a href="watching-event">watching event</a></li>
+                    <li class="nav"><a href="voting-event">voting event</a></li>
+                    <li><a href="search-movie">search movie</a></li>
+                    <li><a href="logout">sign out</a></li>
+                </ul>
+            </div>
+        </div><!-- end header_left -->
+        <div class="h_main">
+            <div class="content">
+                <div id="watchinfor">
+                    <h5>Watching event</h5>
+                    <select id="seleGroup" class="select" onchange="getWatchList()">
+                        <option value="0">select a group</option>
+                    </select>
+                    <select id="seleWatch" class="select" onchange="getWatchInfor()">
+                        <option value="0">select a watching event</option>
+                    </select><br>
+                    <div id="infor"></div>
+                </div>
+                <div id="addvote">
+                    <h5>Voting event time slot</h5>
+                    Start date:<input type="date" class="input" id="start_date"/><br>
+                    Start time:<input type="time" class="input" value="08:00" id="start_time"/><br>
+                    End date:<input type="date" class="input" id="end_date"/><br>
+                    End time:<input type="time" class="input" value="12:00" id="end_time"/><br>
+                    <input style="display: none" type="button" class="btn" value="Update Voting Event" onclick="updateVotingEvent()"/>
+                </div>
+
+            </div>
+        </div>
+        <div class="clear"></div>
+    </div>
+</div>
+<!-- start main -->
+<div class="main">
+    <div class="wrap">
+        <div class="content"><!-- start content -->
+            <h5 id="vshow" style="display:none;">Movies for voting</h5>
+            <table id=votemovie_list></table>
+        </div><!-- end content -->
+    </div>
+</div>
+<!-- start footer -->
+<div class="footer_bg">
+    <div class="footer">
+        <div class="copy">
+            <p class="link">Copyright &copy; 2020. All rights reserved.</p>
+        </div>
+        <div class="clear"></div>
+    </div>
+</div>
+</body>
+</html>

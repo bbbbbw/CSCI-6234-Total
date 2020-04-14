@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Home</title>
+    <link rel="icon" href="data:;base64,=">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link href='http://fonts.googleapis.com/css?family=Roboto+Slab:400,700' rel='stylesheet' type='text/css'>
+    <link href='http://fonts.googleapis.com/css?family=Rosario:400,700' rel='stylesheet' type='text/css'>
+    <link href="../static/css/style.css" rel="stylesheet" type="text/css" media="all"/>
+    <script src="../static/js/jquery.min.js"></script>
+    <script src="../static/js/hover_pack.js"></script>
+    <script th:inline="javascript">
+        var groupInfo;
+        var currentUserId = parseInt([[${userId}]]);
+
+        $(document).ready(function () {
+            getGroup();
+        });
+
+        function create() {
+            var name = $("#c_name").val();
+            if (name == null || name === "") {
+                alert("Group name cannot be null!");
+                return;
+            }
+            $.ajax({
+                url: "create-group",
+                type: "POST",
+                data: {
+                    name: name,
+                },
+                timeout: 30000,
+                dataType: "json",
+                scriptCharset: "utf-8",
+                success: function (data) {
+                    console.log(data);
+                    if (data != null && data.msg != null) {
+                        alert(data.msg);
+                    }
+                    if (data.status === "success") {
+                        location.reload();
+                    }
+                },
+                error: function (XMLHttpRequest, textStatus, errorThrown) {
+                    //alert(errorThrown);
+                }
+            });
+        }
+        
+        function join() {
+            var invite_code = $("#invite_code").val();
+            if (invite_code == null || invite_code === "") {
+                alert("Invite code cannot be null!");
+                return;
+            }
+            $.ajax({
+                url: "join-group",
+                type: "POST",
+                data: {
+                    invite_code: invite_code,
+                },
+                timeout: 30000,
+                dataType: "json",
+                scriptCharset: "utf-8",
+                success: function (data) {
+                    console.log(data);
+                    if (data != null && data.msg != null) {
+                        alert(data.msg);
+                    }
+                    if (data.status === "success") {
+                        getGroup();
+                    }
+                },
+                error: function (XMLHttpRequest, textStatus, errorThrown) {
+                    //alert(errorThrown);
+                }
+            });
+        }
+
+        function unsubscribe() {
+            $.ajax({
+                url: "unsubscribe",
+                type: "POST",
+                data: {
+                    groupId: $("#sel").val()
+                },
+                timeout: 30000,
+                dataType: "json",
+                scriptCharset: "utf-8",
+                success: function (data) {
+                    console.log(data);
+                    if (data != null && data.msg != null) {
+                        alert(data.msg);
+                    }
+                    if (data.status === "success") {
+                        getGroup();
+                    }
+                },
+                error: function (XMLHttpRequest, textStatus, errorThrown) {
+                    //alert(errorThrown);
+                }
+            });
+        }
+
+        function getGroup() {
+            $.ajax({
+                url: "get-group",
+                type: "GET",
+                timeout: 30000,
+                dataType: "json",
+                scriptCharset: "utf-8",
+                success: function (data) {
+                    console.log(data);
+                    groupInfo = data.data;
+                    var html = '';
+                    for (var i in data.data) {
+                        html += '<option value="' + data.data[i].id + '">' + data.data[i].name + '</option>';
+                    }
+                    $('#sel').html(html);
+                    if (data.data.length == 0) {
+                        $('#group_info tbody').html("");
+                        return;
+                    }
+                    getGroupInfo(0);
+                },
+                error: function (XMLHttpRequest, textStatus, errorThrown) {
+                    //alert(errorThrown);
+                }
+            });
+        }
+
+        function getGroupInfo(index) {
+            var currentGroup = groupInfo[index];
+            var html = '<tr><td>Group name:</td><td>' + currentGroup.name + '</td><tr>'
+                + '<tr><td>Group No.:</td><td>' + currentGroup.id + '</td><tr>'
+            if (currentGroup.moderatorId !== currentUserId) {
+                html += '<tr><td>Action:</td><td><a href="javascript:unsubscribe()">unsubscribe</a></td></tr>';
+            } else {
+                html += '<tr><td>Invite code:</td><td><span id="inv">' + currentGroup.inviteCode + '</span></td></tr>';
+            }
+            $('#group_info tbody').html(html);
+
+            getMember(currentGroup.id);
+            getMovie(currentGroup.id);
+        }
+
+        function getMember(groupId) {
+            var moderatorId = groupInfo[$("#sel")[0].selectedIndex].moderatorId;
+            $.ajax({
+                url: "get-group-member",
+                type: "GET",
+                data: {
+                    groupId: groupId
+                },
+                timeout: 30000,
+                dataType: "json",
+                scriptCharset: "utf-8",
+                success: function (data) {
+                    console.log(data);
+                    if (data.data.length == 0) {
+                        $('#member').html('');
+                        return;
+                    }
+                    var html = '<tr><th>ID</th><th>Name</th><th>Phone</th><th>Position</th></tr>';
+                    for (i in data.data) {
+                        html += '<tr><td>' + data.data[i].id + '</td>' + '<td>' + data.data[i].name + '</td>';
+                        if (data.data[i].phone != null) {
+                            html +='<td>' + data.data[i].phone + '</td>';
+                        } else {
+                            html +='<td>/</td>';
+                        }
+                        if (moderatorId == data.data[i].id) {
+                            html +='<td>Moderator</td>';
+                        } else {
+                            html +='<td>Member</td>';
+                        }
+                        html += '</tr>';
+                    }
+                    $('#member').html(html);
+
+                },
+                error: function (XMLHttpRequest, textStatus, errorThrown) {
+                    //alert(errorThrown);
+                }
+            });
+        }
+
+        function getMovie(groupId) {
+            $.ajax({
+                url: "get-group-movie",
+                type: "GET",
+                data: {
+                    groupId: groupId
+                },
+                timeout: 30000,
+                dataType: "json",
+                scriptCharset: "utf-8",
+                success: function (data) {
+                    console.log(data);
+                    $("#movie").html('');
+                    for (var i in data.data) {
+                        getDetail(groupId, data.data[i].id, data.data[i].apiId);
+                    }
+                    $("#movie").append('<div style="clear:left;"></div>');
+                },
+                error: function (XMLHttpRequest, textStatus, errorThrown) {
+                    //alert(errorThrown);
+                }
+            });
+        }
+
+        function getDetail(groupId, localId, apiId) {
+            $.ajax({
+                url: "https://api.themoviedb.org/3/movie/" + apiId + "?api_key=8a35d3b541da81f56395425838e3350c&language=en-US",
+                type: "GET",
+                data: {
+                    //change
+                },
+                timeout: 30000,
+                dataType: "jsonp",
+                crossDomain: true,
+                scriptCharset: "utf-8",
+                success: function (data) {
+                    //console.log(data);
+                    var language = data.spoken_languages[0].name;
+                    for (i = 1; i < data.spoken_languages.length; i++) {
+                        language += ' / ' + data.spoken_languages[i].name;
+                    }
+                    var genres = data.genres[0].name;
+                    for (i = 1; i < data.genres.length; i++) {
+                        genres += ' / ' + data.genres[i].name;
+                    }
+                    var html = '';
+                    html += '<div class="item"><a href="detail?movie_id=' + localId + '&group_id=' + groupId + '">'
+                        + '<div style="text-align:center;float:left;"><img width=100px src="https://image.tmdb.org/t/p/w500' + data.poster_path + '"/></div>'
+                        //+'<div style="text-align:center;float:left;"><img width=80px src="image/poster.jpg"/></div>'
+                        + '<div style="margin:2px;width:300px;float:left;">'
+                        + '<div class="att">' + data.title + '</div>'
+                        + '<div class="att">' + language + '</div>'
+                        + '<div class="att">' + genres + '</div>'
+                        + '<div class="att">' + data.release_date + '</div>'
+                        + '<div class="att">popularity: ' + data.popularity + '</div>'
+                        + '</div>'
+                        + '</a></div>';
+                    $("#movie").append(html);
+                },
+                error: function (XMLHttpRequest, textStatus, errorThrown) {
+                    //alert(errorThrown);
+                }
+            });
+        }
+
+        function search() {
+            var keyword = 'king';
+            //var keyword=$("#s_name").val();
+            $.ajax({
+                url: "https://api.themoviedb.org/3/search/movie?api_key=8a35d3b541da81f56395425838e3350c&language=en-US&query=" + keyword + "&page=1&include_adult=false",
+                type: "GET",
+                data: {
+                    //change
+                },
+                timeout: 30000,
+                dataType: "jsonp",
+                crossDomain: true,
+                scriptCharset: "utf-8",
+                success: function (data) {
+                    console.log(data);
+
+
+                },
+                error: function (XMLHttpRequest, textStatus, errorThrown) {
+                    //alert(errorThrown);
+                }
+            });
+        }
+    </script>
+    <style>
+        /* #main{width:1000px;margin:0 auto;background-color: #F0F0F0;border-bottom:1px dotted #000;border-top:1px dotted #000;}
+        h1{text-align:center;}
+        #movie{width:980px;}*/
+        .item {
+            float: left;
+            width: 50%;
+            min-width: 450px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+
+        .h_main, .content {
+            padding: 0;
+        }
+
+        #createGroup, #group {
+            width: 45%;
+            float: left;
+            height: 95%;
+            border: 1px dotted black;
+            padding: 10px;
+        }
+
+        .create {
+            width: 70%;
+        }
+
+        #group_info {
+            width: 100%;
+        }
+
+        #member {
+            margin: auto;
+        }
+    </style>
+</head>
+
+<body>
+<!-- start header -->
+<div class="header">
+    <div class="wrap1">
+        <div class="soc_icons">
+            <ul class="tt-wrapper">
+                <li><a class="tt-gplus" href="#"><span>twitter</span></a></li>
+                <li><a class="tt-dribbble" href="#"><span>facebook</span></a></li>
+                <li><a class="tt-facebook" href="#"><span>youtube</span></a></li>
+                <li><a class="tt-linkedin" href="#"><span>skype</span></a></li>
+            </ul>
+        </div>
+        <div class="clear"></div>
+        <div class="header_left"><!-- start header_left -->
+            <div class="logo">
+                <h1><a href="index">Cinema</a></h1>
+            </div>
+            <div class="h_nav">
+                <ul>
+                    <li class="nav"><a href="index">home</a></li>
+                    <li><a href="manage-group">manage group</a></li>
+                    <li><a href="watching-event">watching event</a></li>
+                    <li><a href="voting-event">voting event</a></li>
+                    <li><a href="search-movie">search movie</a></li>
+                    <li><a href="logout">sign out</a></li>
+                </ul>
+            </div>
+        </div><!-- end header_left -->
+        <div class="h_main">
+            <div class="content" id="createGroup">
+                <!-- <input type="text" class="input create" placeholder="Input the movie name..."id="s_name"/>
+                <input type="button" class="btn" value="search" onclick="search()"/><br> -->
+                <h6>Create a new group</h6>
+                <input type="text" class="input create" placeholder="Input the group name..." id="c_name" name="name">
+                <input type="button" class="btn" value="create" onclick="create()"/><br>
+
+                <h6>Or join a group</h6>
+                <input type="text" class="input create" placeholder="Input the invite code..." id="invite_code" name="invite_code">
+                <input type="button" class="btn" value="join" onclick="join()"/><br>
+            </div>
+            <div class="content" id="group">
+                <h6>Your group</h6>
+                <select id="sel" class="select" onchange="getGroupInfo(this.selectedIndex)">
+                    <option>select a group</option>
+                </select>
+                <div id="exist_group">
+                    <table id="group_info">
+                        <thead>
+                            <th colspan="2" style="font-weight: 600">Group Information</th>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="clear"></div>
+    </div>
+</div>
+<!-- start main -->
+<div class="main">
+    <div class="wrap">
+        <div class="content"><!-- start content -->
+            <h5>group movie list</h5>
+            <div id="movie"></div>
+            <!-- <div id="movie_item"></div> -->
+            <div style="clear:left;"></div>
+            <h5>group member</h5>
+            <table id="member"></table>
+
+            <!-- <div id="event">
+               <h5>Watch event</h5>
+               <div></div>
+
+               <h5>Vote event</h5>
+               <div></div>
+           </div> -->
+        </div><!-- end content -->
+    </div>
+</div>
+<!-- start footer -->
+<div class="footer_bg">
+    <div class="footer">
+        <div class="copy">
+            <p class="link">Copyright &copy; 2020. All rights reserved.</p>
+        </div>
+        <div class="clear"></div>
+    </div>
+</div>
+</body>
+</html>
